@@ -1,4 +1,7 @@
-'''Version 0.5'''
+'''
+Version 0.6
+Python 3
+'''
 import sys
 import json
 import difflib
@@ -68,7 +71,7 @@ def calc_translation(result, answer):
 
     intersection = result.intersection(answer)
     translation = {resultmap[i]: answermap[i] for i in intersection}
-    scores = dict(zip(translation.values(), [1]*len(intersection)))
+    scores = dict(list(zip(list(translation.values()), [1]*len(intersection))))
     score_by_results = {}
     score_by_answers = {}
 
@@ -206,7 +209,7 @@ def main(years, grading):
         with open('gg%sanswers.json' % y, 'r') as f:
             answers = json.load(f)
 
-        answers['awards'] = answers['award_data'].keys()
+        answers['awards'] = list(answers['award_data'].keys())
 
         for g in grading:
             if g in ['hosts', 'awards']:
