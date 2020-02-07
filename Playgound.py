@@ -56,7 +56,7 @@ def subjectSearch(tree, index):
         if "NNP" in tree[i][0]:
             subject = ""
             for word_pair in tree[i]:
-                subject = subject + word_pair[0]
+                subject = subject + word_pair[0] + ' '
             return subject
 
 
@@ -75,7 +75,7 @@ def buildRelation(text, verb):
     return Relation(obj, verb, subj)
 
 
-class Relation():
+class Relation:
     def __init__(self, object, verb, subject):
         self.object = object
         self.verb = verb
@@ -87,34 +87,38 @@ class Relation():
         print("Object: " + self.object)
 
 
+class VoteBoard:
+    def __init__(self, award):
+        self.award = award
+        self.candidates = {}
+
+    def updateVote(self, curCandidate):
+        if self.candidates.get(curCandidate) is None:
+            self.candidates[curCandidate] = 1
+        else:
+            self.candidates[curCandidate] = self.candidates[curCandidate] + 1
+
+    def displayWinner(self):
+        winner = ""
+        max = -1
+        for candidate in self.candidates:
+            if self.candidates[candidate] > max:
+                max = self.candidates[candidate]
+                winner = candidate
+
+        print(winner + " won " + self.award)
+
+
 if __name__ == "__main__":
 
     i = 0
     winTweets = []
-    while len(winTweets) < 500:
+    while len(winTweets) < 1000:
         if " won " in data[i]['text']:
             winTweets.append(data[i])
         i = i+1
 
-    """
-    text = unhashtag(
-        "Christoph Waltz won a Golden Globe for Best Supporting Actor In A Motion Picture! Congrats! #GoldenGlobes")
-    tokens = nltk.word_tokenize(text)
-    tagged = nltk.pos_tag(tokens)
-    tree = nltk.chunk.ne_chunk(tagged)
-    tree = nltk.chunk.ne_chunk(tagged)
-    print(tagged)
-    print(tree)
 
-    #buildRelation(text, "won")
-
-    
-    text = unhashtag("RT @PimpBillClinton: I just won the Golden Globe for Acting (Like I Give A Shit About Whatever My Wife Is Talking About). #GoldenGlobes")
-    tokens = nltk.word_tokenize(text)
-    tagged = nltk.pos_tag(tokens)
-    tree = nltk.chunk.ne_chunk(tagged)
-    print(tree)
-    """
 
     cleanRelation = []
 
@@ -127,8 +131,16 @@ if __name__ == "__main__":
         if relation is not None:
             cleanRelation.append(relation)
 
+    voteBoard = VoteBoard("Song")
+
     for relation in cleanRelation:
-        relation.display()
+        #relation.display()
+        if voteBoard.award in relation.object:
+            voteBoard.updateVote(relation.subject)
+
+    voteBoard.displayWinner()
+
+
 
     """ 
     for i in range(0, len(winTweets)):
@@ -147,5 +159,11 @@ if __name__ == "__main__":
 
 
 
+#TODO
+# 1. At some point convert everything to lowercase
+# 2. Check if Subject finder can even get movies. IF NOT RETUNE
+# 3. Create cleaner of some sort to get award titles out of objects
+# 4. Combine subject names (during voting or whatever process we choose)
+# 5. Add other verbs
 
 
