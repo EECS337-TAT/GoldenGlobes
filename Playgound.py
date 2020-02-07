@@ -160,10 +160,15 @@ if __name__ == "__main__":
 
 
 #TODO
-# 1. At some point convert everything to lowercase
 # 2. Check if Subject finder can even get movies. IF NOT RETUNE
-# 3. Create cleaner of some sort to get award titles out of objects
-# 4. Combine subject names (during voting or whatever process we choose)
 # 5. Add other verbs
 
+#Alex TODO
+# 1. At some point convert everything to lowercase
+# 3. Create cleaner of some sort to get award titles out of objects
+    #Filter for award words and helper awards starting from word 1
+    #Use list of official awards
+# 4. Combine subject names (during voting or whatever process we choose)
+    #Probably create a dictionary associating full actor names with lists of awards
+    #Check for last names, and add them to the dictionary entry of the full name
 
