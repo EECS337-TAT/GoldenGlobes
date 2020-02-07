@@ -26,10 +26,11 @@ def unhashtag(str):
     return str.replace('#', '')
 
 
-def wordIndexInTree(tree, word):
+def wordIndexInTree(tree, words):
     for i in range(0, len(tree)):
-        if tree[i][0] == word:
-            return i
+        for word in words:
+            if tree[i][0] == word:
+                return [i, word]
 
 
 def objectSearch(tree, index):
@@ -60,15 +61,16 @@ def subjectSearch(tree, index):
             return subject
 
 
-def buildRelation(text, verb):
+def buildRelation(text, verbs):
 
     text = unhashtag(text)
     tokens = nltk.word_tokenize(text)
     tagged = nltk.pos_tag(tokens)
     tree = nltk.chunk.ne_chunk(tagged)
 
-    obj = objectSearch(tagged, wordIndexInTree(tagged, verb))
-    subj = subjectSearch(tree, wordIndexInTree(tree, verb))
+    [tagIndex, verb] = wordIndexInTree(tagged,verbs)
+    obj = objectSearch(tagged, tagIndex)
+    subj = subjectSearch(tree, wordIndexInTree(tree, verbs)[0])
     if obj is "" or subj is None:
         return None
 
@@ -106,17 +108,21 @@ class VoteBoard:
                 max = self.candidates[candidate]
                 winner = candidate
 
-        print(winner + " won " + self.award)
+        print(winner + "won " + self.award)
 
 
 if __name__ == "__main__":
 
     i = 0
     winTweets = []
+    winWords = ["won", "wins"]
     while len(winTweets) < 1000:
-        if " won " in data[i]['text']:
-            winTweets.append(data[i])
-        i = i+1
+        temp = data[i]
+        for wW in winWords:
+            if " " + wW + " " in temp['text']:
+                winTweets.append(temp)
+                break
+        i += 1
 
 
 
@@ -124,12 +130,23 @@ if __name__ == "__main__":
 
     for i in range(0, len(winTweets)):
         text = winTweets[i]['text']
-        relation = buildRelation(text, "won")
+        relation = buildRelation(text, winWords)
 
         #print(str(i) + ": " + text)
 
         if relation is not None:
             cleanRelation.append(relation)
+
+    # awardList = []
+    # for award in awardList:
+    #     voteBoard = VoteBoard(award)
+    #
+    #     for relation in cleanRelation:
+    #         # relation.display()
+    #         if voteBoard.award in relation.object:
+    #             voteBoard.updateVote(relation.subject)
+    #
+    #     voteBoard.displayWinner()
 
     voteBoard = VoteBoard("Song")
 
@@ -139,7 +156,6 @@ if __name__ == "__main__":
             voteBoard.updateVote(relation.subject)
 
     voteBoard.displayWinner()
-
 
 
     """ 
@@ -157,6 +173,9 @@ if __name__ == "__main__":
 
     #relation.display()
 
+    for i in range(20, 30):
+        text = data[i]['text']
+        print(text)
 
 
 #TODO
