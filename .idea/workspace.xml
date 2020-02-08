@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="f86a18a5-7917-44dd-99e6-770d822bfddd" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/GoldenGlobes.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/GoldenGlobes.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Playgound.py" beforeDir="false" afterPath="$PROJECT_DIR$/Playgound.py" afterDir="false" />
     </list>
@@ -90,33 +88,64 @@
     <option name="version" value="1" />
   </component>
   <component name="WindowStateProjectService">
-    <state width="1515" height="387" key="GridCell.Tab.0.bottom" timestamp="1581052628459">
+    <state width="1515" height="330" key="GridCell.Tab.0.bottom" timestamp="1581128132569">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
-    <state width="1515" height="387" key="GridCell.Tab.0.bottom/0.0.1536.864@0.0.1536.864" timestamp="1581052628459" />
-    <state width="1515" height="387" key="GridCell.Tab.0.center" timestamp="1581052628459">
+    <state width="1515" height="330" key="GridCell.Tab.0.bottom/0.0.1536.864@0.0.1536.864" timestamp="1581128132569" />
+    <state width="1515" height="330" key="GridCell.Tab.0.center" timestamp="1581128132568">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
-    <state width="1515" height="387" key="GridCell.Tab.0.center/0.0.1536.864@0.0.1536.864" timestamp="1581052628459" />
-    <state width="1515" height="387" key="GridCell.Tab.0.left" timestamp="1581052628459">
+    <state width="1515" height="330" key="GridCell.Tab.0.center/0.0.1536.864@0.0.1536.864" timestamp="1581128132568" />
+    <state width="1515" height="330" key="GridCell.Tab.0.left" timestamp="1581128132568">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
-    <state width="1515" height="387" key="GridCell.Tab.0.left/0.0.1536.864@0.0.1536.864" timestamp="1581052628459" />
-    <state width="1515" height="387" key="GridCell.Tab.0.right" timestamp="1581052628459">
+    <state width="1515" height="330" key="GridCell.Tab.0.left/0.0.1536.864@0.0.1536.864" timestamp="1581128132568" />
+    <state width="1515" height="330" key="GridCell.Tab.0.right" timestamp="1581128132569">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
-    <state width="1515" height="387" key="GridCell.Tab.0.right/0.0.1536.864@0.0.1536.864" timestamp="1581052628459" />
+    <state width="1515" height="330" key="GridCell.Tab.0.right/0.0.1536.864@0.0.1536.864" timestamp="1581128132569" />
+    <state width="745" height="276" key="GridCell.Tab.1.bottom" timestamp="1581128132565">
+      <screen x="0" y="0" width="1536" height="864" />
+    </state>
+    <state width="745" height="276" key="GridCell.Tab.1.bottom/0.0.1536.864@0.0.1536.864" timestamp="1581128132565" />
+    <state width="745" height="276" key="GridCell.Tab.1.center" timestamp="1581128132565">
+      <screen x="0" y="0" width="1536" height="864" />
+    </state>
+    <state width="745" height="276" key="GridCell.Tab.1.center/0.0.1536.864@0.0.1536.864" timestamp="1581128132565" />
+    <state width="745" height="276" key="GridCell.Tab.1.left" timestamp="1581128132565">
+      <screen x="0" y="0" width="1536" height="864" />
+    </state>
+    <state width="745" height="276" key="GridCell.Tab.1.left/0.0.1536.864@0.0.1536.864" timestamp="1581128132565" />
+    <state width="745" height="276" key="GridCell.Tab.1.right" timestamp="1581128132565">
+      <screen x="0" y="0" width="1536" height="864" />
+    </state>
+    <state width="745" height="276" key="GridCell.Tab.1.right/0.0.1536.864@0.0.1536.864" timestamp="1581128132565" />
     <state x="277" y="76" key="SettingsEditor" timestamp="1581047016771">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
     <state x="277" y="76" key="SettingsEditor/0.0.1536.864@0.0.1536.864" timestamp="1581047016771" />
-    <state x="465" y="258" key="com.intellij.ide.util.TipDialog" timestamp="1581052753919">
+    <state width="776" height="440" key="XDebugger.FullValuePopup" timestamp="1581100782916">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
-    <state x="465" y="258" key="com.intellij.ide.util.TipDialog/0.0.1536.864@0.0.1536.864" timestamp="1581052753919" />
+    <state width="776" height="440" key="XDebugger.FullValuePopup/0.0.1536.864@0.0.1536.864" timestamp="1581100782916" />
+    <state x="465" y="258" key="com.intellij.ide.util.TipDialog" timestamp="1581095260288">
+      <screen x="0" y="0" width="1536" height="864" />
+    </state>
+    <state x="465" y="258" key="com.intellij.ide.util.TipDialog/0.0.1536.864@0.0.1536.864" timestamp="1581095260288" />
     <state x="431" y="181" width="672" height="678" key="search.everywhere.popup" timestamp="1581047012239">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
     <state x="431" y="181" width="672" height="678" key="search.everywhere.popup/0.0.1536.864@0.0.1536.864" timestamp="1581047012239" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/Playgound.py</url>
+          <line>12</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
