@@ -1,11 +1,12 @@
 import json
 import nltk
 from nltk.corpus import stopwords
-from nltk.tree import *
+from fuzzywuzzy import fuzz
 
 #Githubs I've looked at:
 # Brownrout
 # LJGladic (PMA alum so his code must be good)
+OFFICIAL_AWARDS_1315 = ['cecil b. demille award', 'best motion picture - drama', 'best performance by an actress in a motion picture - drama', 'best performance by an actor in a motion picture - drama', 'best motion picture - comedy or musical', 'best performance by an actress in a motion picture - comedy or musical', 'best performance by an actor in a motion picture - comedy or musical', 'best animated feature film', 'best foreign language film', 'best performance by an actress in a supporting role in a motion picture', 'best performance by an actor in a supporting role in a motion picture', 'best director - motion picture', 'best screenplay - motion picture', 'best original score - motion picture', 'best original song - motion picture', 'best television series - drama', 'best performance by an actress in a television series - drama', 'best performance by an actor in a television series - drama', 'best television series - comedy or musical', 'best performance by an actress in a television series - comedy or musical', 'best performance by an actor in a television series - comedy or musical', 'best mini-series or motion picture made for television', 'best performance by an actress in a mini-series or motion picture made for television', 'best performance by an actor in a mini-series or motion picture made for television', 'best performance by an actress in a supporting role in a series, mini-series or motion picture made for television', 'best performance by an actor in a supporting role in a series, mini-series or motion picture made for television']
 
 with open('gg2013.json') as json_file:
     data = json.load(json_file)
@@ -79,6 +80,36 @@ def buildRelation(text, verbs):
         return None
 
     return Relation(obj, verb, subj)
+
+
+class Award:
+    def __init__(self, title):
+        self.title = title
+        self.people = []
+
+    def findWinner(self):
+        people_comb = {}
+        people_list = sorted(self.people, key=len, reverse=True)
+
+        for tweet in people_list:
+            found = False
+            for title in people_comb:
+                if tweet.lower() in title:
+                    people_comb[title] = people_comb[title] + 1
+                    found = True
+                    break
+            if not found:
+                people_comb[tweet.lower()] = 1
+
+        max = -1
+        winner = ""
+        for person in people_comb:
+            if people_comb[person] > max:
+                max = people_comb[person]
+                winner = person
+
+        print(winner + "won " + self.title)
+
 
 
 class Relation:
@@ -167,20 +198,96 @@ def get_awards(year):
     return set(awards)
 
 
+def combine_awards(awards_list):
+    awards_comb = {}
+    awards_list = sorted(awards_list, key=len, reverse=True)
+
+    for tweet in awards_list:
+        found = False
+        for title in awards_comb:
+            if tweet in title:
+                awards_comb[title] = awards_comb[title] + 1
+                found = True
+                break
+        if not found:
+            awards_comb[tweet] = 1
+
+    return awards_comb
+
+
+def combine_people(people_list):
+    people_comb = {}
+    people_list = sorted(people_list, key=len, reverse=True)
+    total = len(people_list)
+
+    for tweet in people_list:
+        found = False
+        for title in people_comb:
+            if tweet in title:
+                people_comb[title] = people_comb[title] + 1
+                found = True
+                break
+        if not found:
+            people_comb[tweet] = 1
+
+    host_list = []
+    cutoff = total*.10  # 1/4 of mentions
+    for host in people_comb:
+        #print(host + " :: " + str(people_comb[host]))
+        if people_comb[host] > cutoff:
+            host_list.append(host + " :: " + str(people_comb[host]))
+
+    return host_list
+
+
+def find_people(tweets):
+    people = []
+
+    for i in range(0, len(tweets)):
+        text = tweets[i]['text']
+        text = unhashtag(text)
+        tokens = nltk.word_tokenize(text)
+        tagged = nltk.pos_tag(tokens)
+        tree = nltk.chunk.ne_chunk(tagged)
+        people_extracted = people_in_tweet(tree)
+        for person in people_extracted:
+            people.append(person)
+
+    hosts = combine_people(people)
+
+    return hosts
+
+
+def people_in_tweet(tree):
+    peopleArr = []
+    for i in range(0, len(tree)):
+        if "PERSON" in str(tree[i]):
+            subject = ""
+            for word_pair in tree[i]:
+                subject = subject + word_pair[0] + ' '
+            peopleArr.append(subject)
+
+    return peopleArr
+
+
 if __name__ == "__main__":
 
     i = 0
+    hostTweets = []
     winTweets = []
     winWords = ["won", "wins"]
-    while len(winTweets) < 1000:
-        temp = data[i]
+    for temp in data:
+        #temp = data[i]
         for wW in winWords:
             if " " + wW + " " in temp['text']:
                 winTweets.append(temp)
                 break
-        i += 1
+        if " host " in temp['text']:
+            hostTweets.append(temp)
+        #i += 1
 
-
+    peopleList = find_people(hostTweets)
+    print(peopleList)
 
     cleanRelation = []
 
@@ -204,45 +311,47 @@ if __name__ == "__main__":
     #
     #     voteBoard.displayWinner()
 
-    voteBoard = VoteBoard("Song")
 
+
+
+
+    awards = get_awards('2013')
+    compiled_awards = combine_awards(awards)
+    print(compiled_awards)
+
+    award_array = []
+    for award in OFFICIAL_AWARDS_1315:
+        award_array.append(Award(award))
+    #voteBoard = VoteBoard(award)
+
+    # fuzzywuzzy info https://www.datacamp.com/community/tutorials/fuzzy-string-python
     for relation in cleanRelation:
-        #relation.display()
-        if voteBoard.award in relation.object:
-            voteBoard.updateVote(relation.subject)
+        max = -1
+        most_likely = "garbage"
+        for award in award_array:
+            # TODO :: TEST WHICH FUZZ METHOD IS MOST ACCURATE
+            fuzz_val = fuzz.token_set_ratio(award.title.lower(), relation.object.lower())
+            if max < fuzz_val:
+                max = fuzz_val
+                most_likely = award
+        most_likely.people.append(relation.subject)
 
-    voteBoard.displayWinner()
+    for award in award_array:
+        award.findWinner()
 
-
-    """ 
-    for i in range(0, len(winTweets)):
-        text = winTweets[i]['text']
-        relation = buildRelation(text, "won")
-
-        print(str(i) + ": " + text)
-
-        if relation is None:
-            print("NONE")
-        else:
-            relation.display()
-            """
-
-    #relation.display()
-
-    #for i in range(20, 30):
-    #    text = data[i]['text']
-    #    print(text)
-    for tweet in get_awards('2013'):
-        print(tweet)
+    # voteBoard.displayWinner()
 
 #TODO
-# 2. Check if Subject finder can even get movies. IF NOT RETUNE
+# 2. Subject finder defintely is not getting movies correctly
+# 4. Kristen Wiig and Will Ferrell are creating a weird host error due to their presentation speech
 # 5. Add other verbs
+# 6. Mess with fuzz logic
 
 #Alex TODO
 #Finding awards:
 # 1. At some point convert everything to lowercase
 # 2. Write regex award finder because I don't trust relations
+# 3. Replace combiner to use closest fuzz logic and not in
 
 #Finding winners:
 # 3. Create cleaner of some sort to get award titles out of objects
@@ -251,5 +360,10 @@ if __name__ == "__main__":
 # 4. Combine subject names (during voting or whatever process we choose)
     #Probably create a dictionary associating full actor names with lists of awards
     #Check for last names, and add them to the dictionary entry of the full name
+
+    #Currently using a sort by length as a cheeky way to place full names before first or last names
+
+#Finding Hosts:
+# 1. Clean host names by removing extra space and lowercasing
 
 
