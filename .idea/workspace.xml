@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f86a18a5-7917-44dd-99e6-770d822bfddd" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Playgound.py" beforeDir="false" afterPath="$PROJECT_DIR$/Playgound.py" afterDir="false" />
-    </list>
+    <list default="true" id="f86a18a5-7917-44dd-99e6-770d822bfddd" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -128,10 +125,10 @@
       <screen x="0" y="0" width="1536" height="864" />
     </state>
     <state width="776" height="440" key="XDebugger.FullValuePopup/0.0.1536.864@0.0.1536.864" timestamp="1581100782916" />
-    <state x="465" y="258" key="com.intellij.ide.util.TipDialog" timestamp="1581095260288">
+    <state x="465" y="258" key="com.intellij.ide.util.TipDialog" timestamp="1581277834675">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
-    <state x="465" y="258" key="com.intellij.ide.util.TipDialog/0.0.1536.864@0.0.1536.864" timestamp="1581095260288" />
+    <state x="465" y="258" key="com.intellij.ide.util.TipDialog/0.0.1536.864@0.0.1536.864" timestamp="1581277834675" />
     <state x="431" y="181" width="672" height="678" key="search.everywhere.popup" timestamp="1581047012239">
       <screen x="0" y="0" width="1536" height="864" />
     </state>
