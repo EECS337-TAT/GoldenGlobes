@@ -2,6 +2,7 @@ import json
 import nltk
 from nltk.corpus import stopwords
 from fuzzywuzzy import fuzz
+from imdb import IMDb
 
 #Githubs I've looked at:
 # Brownrout
@@ -17,6 +18,9 @@ award_words_lower = [word.lower() for word in award_words]
 #A comprehensive list of any words that appear in an award but don't indicate that it is an award
 helper_words = ['By','In','For','A','An','-',':','Or','Made','Any']
 helper_words_lower = [word.lower() for word in helper_words]
+
+# IMDb Helper
+ia = IMDb()
 
 with open('gg2013.json') as json_file:
     data = json.load(json_file)
@@ -52,7 +56,7 @@ def objectSearch(tree, index):
     searching = True
     compiling = True
     object = ""
-
+    print(tree)
     while searching and index < len(tree):
         if "Best" == tree[index][0]:
             searching = False
@@ -63,17 +67,21 @@ def objectSearch(tree, index):
                 object = object + tree[index][0] + ' '
                 index = index + 1
         index = index+1
-
-    return object[:-1]
+    # hard removal of 'golden globes' substrings handled in main function.
+    #object = object.replace('golden', '').replace('globes', '').replace('goldenglobes', '')
+    return object[:-1].lower()
 
 
 def subjectSearch(tree, index):
+
     for i in range(index, 0, -1):
         if "NNP" in tree[i][0]:
             subject = ""
             for word_pair in tree[i]:
                 subject = subject + word_pair[0] + ' '
-            return subject[:-1]
+            # hard removal of 'golden globes' substrings handled in main function.
+            # subject = subject.replace('golden', '').replace('globes', '').replace('goldenglobes', '')
+            return subject[:-1].lower()
 
 
 def buildRelation(text, verbs):
@@ -121,6 +129,7 @@ class Award:
                 max = people_comb[person]
                 winner = person
 
+        winner = movie_person_cleaner(winner)
         print(winner + " won " + self.title)
         return winner
 
@@ -264,7 +273,8 @@ def combine_people(people_list):
     #    if not found:
     #        people_comb[tweet] = 1
 
-    # 2. The following for loop combines people according to frequency.
+    # 2. UPDATE THIS DESC TO BE ACCURATE
+    # The following for loop combines people according to frequency.
     # This may potentially be an issue if a nickname or similar is commonly used to reference a person.
         if " " in tweet and tweet not in people_comb:
                 people_comb[tweet] = 1
@@ -279,7 +289,7 @@ def combine_people(people_list):
 
 
     host_list = []
-    cutoff = total*.20  # 1/4 of mentions
+    cutoff = total*.15  # 1/4 of mentions
     for host in people_comb:
         #print(host + " :: " + str(people_comb[host]))
         if people_comb[host] > cutoff:
@@ -318,6 +328,30 @@ def people_in_tweet(tree):
     return peopleArr
 
 
+def movie_person_cleaner(text):
+
+    movie_results = ia.search_movie(text)
+    person_results = ia.search_person(text)
+
+    if len(movie_results) > 0:
+        movie_accuracy = fuzz.partial_ratio(str(movie_results[0]).lower(), text)
+    else:
+        movie_accuracy = 0
+    if len(person_results) > 0:
+        people_accuracy = fuzz.partial_ratio(str(person_results[0]).lower(), text)
+    else:
+        people_accuracy = 0
+
+    if movie_accuracy == 0 and people_accuracy == 0:
+        final_name = ""
+    elif movie_accuracy > people_accuracy:
+        final_name = movie_results[0]
+    else:
+        final_name = person_results[0]
+
+    return str(final_name).lower()
+
+
 if __name__ == "__main__":
 
     print('Finding people...')
@@ -334,8 +368,6 @@ if __name__ == "__main__":
         if " host " in temp['text'] and " next " not in temp['text']:
             hostTweets.append(temp)
         #i += 1
-
-    print
 
     peopleList = find_people(hostTweets)
     print(peopleList)
@@ -387,7 +419,17 @@ if __name__ == "__main__":
             if max < fuzz_val:
                 max = fuzz_val
                 most_likely = award
-        most_likely.people.append(relation.subject)
+
+        ungolden = relation.subject.replace('golden', '').replace('globes', '').replace('goldenglobes', '')
+        #ungolden_str = ""
+        # print(ungolden)
+        """
+        for i in range(0, len(ungolden)):
+            #print(ungolden[i][1])
+            if "NN" in ungolden[i][1]:
+                ungolden_str += ungolden[i][0] + " "
+        """
+        most_likely.people.append(ungolden)
 
     for award in award_array:
         award.findWinner()
