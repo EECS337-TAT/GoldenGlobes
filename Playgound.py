@@ -39,10 +39,11 @@ def unstop():
     print(unstopped_sentence)
 
 
-def unhashtag(str):
-    #if "RT " in str:
-    #    str = str[str.index(':'):]
-    return str.replace('#', '')
+def unhashtag(tweet_text):
+    if "RT " in tweet_text and ":" in tweet_text:
+        tweet_text = tweet_text[tweet_text.index(':'):]
+
+    return tweet_text.replace('#', '')
 
 
 def wordIndexInTree(tree, words):
@@ -56,7 +57,7 @@ def objectSearch(tree, index):
     searching = True
     compiling = True
     object = ""
-    print(tree)
+    #print(tree)
     while searching and index < len(tree):
         if "Best" == tree[index][0]:
             searching = False
@@ -75,7 +76,7 @@ def objectSearch(tree, index):
 def subjectSearch(tree, index):
 
     for i in range(index, 0, -1):
-        if "NNP" in tree[i][0]:
+        if "NN" in tree[i][0] or "NNP" in tree[i][0]:
             subject = ""
             for word_pair in tree[i]:
                 subject = subject + word_pair[0] + ' '
@@ -90,8 +91,10 @@ def buildRelation(text, verbs):
     tokens = nltk.word_tokenize(text)
     tagged = nltk.pos_tag(tokens)
     tree = nltk.chunk.ne_chunk(tagged)
-
-    [tagIndex, verb] = wordIndexInTree(tagged,verbs)
+    try:
+        [tagIndex, verb] = wordIndexInTree(tagged,verbs)
+    except:
+        return None
     obj = objectSearch(tagged, tagIndex)
     if obj == "":
         return None
@@ -124,12 +127,20 @@ class Award:
 
         max = -1
         winner = ""
-        for person in people_comb:
-            if people_comb[person] > max:
-                max = people_comb[person]
-                winner = person
+        attempt = 0
+        while winner == "" and attempt < 5:
+            for person in people_comb:
+                if people_comb[person] > max:
+                    max = people_comb[person]
+                    winner = person
 
-        winner = movie_person_cleaner(winner)
+            winner_clean = movie_person_cleaner(winner, self.title)
+            if winner_clean == "":
+                people_comb[winner] = 0
+            else:
+                winner = winner_clean
+            attempt = attempt + 1
+
         print(winner + " won " + self.title)
         return winner
 
@@ -328,8 +339,30 @@ def people_in_tweet(tree):
     return peopleArr
 
 
-def movie_person_cleaner(text):
+def movie_person_cleaner(name, award):
+    """
+    if "performance" in award or "director" in award or "score" in award:
+        person_results = ia.search_person(name)
+        if len(person_results) > 0:
+            people_accuracy = fuzz.partial_token_set_ratio(str(person_results[0]).lower(), name)
+        else:
+            people_accuracy = 0
 
+        if people_accuracy < 50:
+            return ""
+        return str(person_results[0]).lower()
+
+    movie_results = ia.search_movie_advanced(name)
+
+    if len(movie_results) > 0:
+        movie_accuracy = fuzz.ratio(str(movie_results[0]).lower(), name)
+    else:
+        movie_accuracy = 0
+
+    if movie_accuracy < 50:
+        return ""
+    return str(movie_results[0]).lower()
+    """
     movie_results = ia.search_movie(text)
     person_results = ia.search_person(text)
 
@@ -353,6 +386,12 @@ def movie_person_cleaner(text):
 
 
 if __name__ == "__main__":
+
+    #name = "anne hathaway"
+    #person_results = ia.search_person(name)
+    #movie_results = ia.search_movie_advanced(name)
+    #print(movie_results[0])
+    #print(str(fuzz.ratio(str(movie_results[0]).lower(), name)))
 
     print('Finding people...')
     i = 0
@@ -415,7 +454,7 @@ if __name__ == "__main__":
         most_likely = "garbage"
         for award in award_array:
             # TODO :: TEST WHICH FUZZ METHOD IS MOST ACCURATE
-            fuzz_val = fuzz.token_set_ratio(award.title.lower(), relation.object.lower())
+            fuzz_val = fuzz.partial_token_sort_ratio(award.title.lower(), relation.object.lower())
             if max < fuzz_val:
                 max = fuzz_val
                 most_likely = award
