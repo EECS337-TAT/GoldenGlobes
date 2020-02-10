@@ -1,4 +1,7 @@
 import json
+import re
+import string
+
 import nltk
 from nltk.corpus import stopwords
 from fuzzywuzzy import fuzz
@@ -178,6 +181,96 @@ class VoteBoard:
                 winner = candidate
 
         print(winner + "won " + self.award)
+
+def extract_names(text):
+    names = []
+    for sent in nltk.sent_tokenize(text):
+        for chunk in nltk.ne_chunk(nltk.pos_tag(nltk.word_tokenize(sent))):
+            if hasattr(chunk, 'label'): # and chunk.node == "PERSON":
+                names.append(chunk)
+    return names
+
+def get_presenters(year):
+    official_awards = []
+    official_award_punct_dict = dict()
+    if (year == 2013):
+        official_awards = OFFICIAL_AWARDS_1315.copy()
+    #elif (year == 2018):
+    #    official_awards = OFFICIAL_AWARDS_1819.copy()
+    #elif (year == 2018):
+    #    official_awards = OFFICIAL_AWARDS_1920.copy()
+    for i in range(0,len(official_awards)):
+        for punct in string.punctuation:
+            official_awards[i] = official_awards[i].lower().replace(punct,"")
+            official_award_punct_dict[official_awards[i]] = OFFICIAL_AWARDS_1315[i]
+    potential_presenter_tweets = []
+    presenter_regex = re.compile('.+(are )?present(er|ed|ing|s|\s).+')
+    for tweet in data:
+        tweet = tweet['text'].lower()
+        for punct in string.punctuation:
+            tweet = tweet.replace(punct,"")
+        if re.match(presenter_regex,tweet) and any([word in tweet for word in award_words_lower]):
+            potential_presenter_tweets.append(tweet)
+
+    shortened_award_names = dict()
+    short_award_name_words = ['best','actor','actress','supporting','drama','musical','comedy','television','miniseries','animated','foreign','song',
+                              'score','screenplay','director']
+    for award in official_awards:
+        short_string = ""
+        for word in short_award_name_words:
+            if word in award and word in short_award_name_words:
+                short_string += word + " "
+        shortened_award_names[short_string] = award
+
+    presenters = dict()
+
+    award_tweet_mappings = dict()
+    pre_present_trees = []
+    for ppt in potential_presenter_tweets:
+        ppt = ppt.replace('the nominees for','').replace('for best','best')
+        if 'best ' not in ppt or ' present' not in ppt or ppt.index('best ') < ppt.index(' present'):
+            continue
+        #Find the award name
+        ppt_tokens = ppt.split(' ')
+        best_ind = ppt_tokens.index('best')
+        #present_index = ppt_tokens.index('present')
+        award_name = ""
+        for i in range(best_ind,len(ppt_tokens)):
+            if ppt_tokens[i] in award_words_lower and ppt_tokens[i] != "motion" and ppt_tokens[i] != "picture":
+                award_name += ppt_tokens[i] + " "
+            elif ppt_tokens[i] not in helper_words_lower:
+                break
+        max_similarity = 0
+        max_len = 0
+        best_key = ""
+        for s in shortened_award_names.keys():
+            similarity = fuzz.token_set_ratio(s,award_name)
+            if best_key == "" or (similarity >= max_similarity and len(s) >= max_len):
+                max_similarity = similarity
+                max_len = len(s)
+                best_key = s
+        award_tweet_mappings[shortened_award_names[best_key]] = award_name
+        presenter_1_regex = re.compile('([A-Z][a-z]+)\s([A-Z][a-z]+)')
+        presenter_2_regex = re.compile('([A-Z][a-z]+)\s([A-Z][a-z]+)\s(And)\s([A-Z][a-z]+)\s([A-Z][a-z]+)')
+        ppt_pre_present = ppt[0:ppt.index(' present')]
+        ppt_names = ""
+        ppt_pre_present = ' '.join([token.capitalize() for token in ppt_pre_present.split(' ')])
+        if re.match(presenter_2_regex, ppt_pre_present):
+            ppt_search = re.search(presenter_2_regex, ppt_pre_present)
+            ppt_names = [ppt_search.group(1) + " " + ppt_search.group(2),
+                         ppt_search.group(4) + " " + ppt_search.group(5)]
+            pre_present_trees.append(ppt_names)
+            presenters[official_award_punct_dict[shortened_award_names[best_key]]] = ppt_names
+        elif re.match(presenter_1_regex,ppt_pre_present):
+            ppt_search = re.search(presenter_1_regex,ppt_pre_present)
+            name = ppt_search.group(1)+" "+ppt_search.group(2)
+            if 'rt' in name[0:3].lower():
+                continue
+            pre_present_trees.append(name)
+            presenters[official_award_punct_dict[shortened_award_names[best_key]]] = name
+
+    return presenters
+
 
 
 def get_awards(year):
@@ -392,6 +485,12 @@ if __name__ == "__main__":
     #movie_results = ia.search_movie_advanced(name)
     #print(movie_results[0])
     #print(str(fuzz.ratio(str(movie_results[0]).lower(), name)))
+
+    #sentence = "Alex Banta and Anne Hathaway present the award for Best Meme"
+
+    print('Getting presenters...')
+    presenters = get_presenters(2013)
+    print('debug')
 
     print('Finding people...')
     i = 0
