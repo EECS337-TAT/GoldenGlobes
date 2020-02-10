@@ -13,13 +13,13 @@ from imdb import IMDb
 
 OFFICIAL_AWARDS_1315 = ['cecil b. demille award', 'best motion picture - drama', 'best performance by an actress in a motion picture - drama', 'best performance by an actor in a motion picture - drama', 'best motion picture - comedy or musical', 'best performance by an actress in a motion picture - comedy or musical', 'best performance by an actor in a motion picture - comedy or musical', 'best animated feature film', 'best foreign language film', 'best performance by an actress in a supporting role in a motion picture', 'best performance by an actor in a supporting role in a motion picture', 'best director - motion picture', 'best screenplay - motion picture', 'best original score - motion picture', 'best original song - motion picture', 'best television series - drama', 'best performance by an actress in a television series - drama', 'best performance by an actor in a television series - drama', 'best television series - comedy or musical', 'best performance by an actress in a television series - comedy or musical', 'best performance by an actor in a television series - comedy or musical', 'best mini-series or motion picture made for television', 'best performance by an actress in a mini-series or motion picture made for television', 'best performance by an actor in a mini-series or motion picture made for television', 'best performance by an actress in a supporting role in a series, mini-series or motion picture made for television', 'best performance by an actor in a supporting role in a series, mini-series or motion picture made for television']
 
-#A comprehensive list of any words that indicate that a certain phrase is an award.
+#A comprehensive list of any words relating to movies or possible awards in a show of this type
 award_words = ['Best','Motion','Picture','Drama','Musical','Comedy','Performance','Actor','Actress','Supporting','Leading','Role',
                'Director','Movie','Film','Feature','Screenplay','Animated','Foreign','Language','Original','Song','Score',
-               'Television','TV','Series','Mini','Mini-Series','Limited']
+               'Television','TV','Series','Mini','Mini-Series','Miniseries','Limited']
 award_words_lower = [word.lower() for word in award_words]
 #A comprehensive list of any words that appear in an award but don't indicate that it is an award
-helper_words = ['By','In','For','A','An','-',':','Or','Made','Any']
+helper_words = ['By','In','For','A','An','-',':','Or','Made','Any','Adapted'] # 'Adapted is an oscars term so it appears in helpers
 helper_words_lower = [word.lower() for word in helper_words]
 
 # IMDb Helper
@@ -200,6 +200,7 @@ def get_presenters(year):
     #elif (year == 2018):
     #    official_awards = OFFICIAL_AWARDS_1920.copy()
     for i in range(0,len(official_awards)):
+        official_awards[i] = official_awards[i].replace('&','and')
         for punct in string.punctuation:
             official_awards[i] = official_awards[i].lower().replace(punct,"")
             official_award_punct_dict[official_awards[i]] = OFFICIAL_AWARDS_1315[i]
@@ -213,8 +214,8 @@ def get_presenters(year):
             potential_presenter_tweets.append(tweet)
 
     shortened_award_names = dict()
-    short_award_name_words = ['best','actor','actress','supporting','drama','musical','comedy','television','miniseries','animated','foreign','song',
-                              'score','screenplay','director']
+    short_award_name_words = ['best','actor','actress','supporting','picture','drama','musical','comedy','television','miniseries','animated','foreign',
+                              'song','score','screenplay','director']
     for award in official_awards:
         short_string = ""
         for word in short_award_name_words:
@@ -236,32 +237,39 @@ def get_presenters(year):
         #present_index = ppt_tokens.index('present')
         award_name = ""
         for i in range(best_ind,len(ppt_tokens)):
-            if ppt_tokens[i] in award_words_lower and ppt_tokens[i] != "motion" and ppt_tokens[i] != "picture":
+            if ppt_tokens[i] == 'tv':
+                ppt_tokens[i] = 'television'
+            elif ppt_tokens[i] == 'mini-series':
+                ppt_tokens[i] = 'miniseries'
+            if ppt_tokens[i] in award_words_lower: #and ppt_tokens[i] != "motion" and ppt_tokens[i] != "picture":
                 award_name += ppt_tokens[i] + " "
             elif ppt_tokens[i] not in helper_words_lower:
                 break
         max_similarity = 0
-        max_len = 0
+        max_tokens = 0
         best_key = ""
         for s in shortened_award_names.keys():
             similarity = fuzz.token_set_ratio(s,award_name)
-            if best_key == "" or (similarity >= max_similarity and len(s) >= max_len):
+            if best_key == "" or (similarity > max_similarity or (similarity >= max_similarity and len(s.split(' ')) >= max_tokens)):
                 max_similarity = similarity
-                max_len = len(s)
+                max_tokens = len(s.split(' '))
                 best_key = s
+        #Don't redo award assignments
+        if official_award_punct_dict[shortened_award_names[best_key]] in presenters.keys():
+            continue
         award_tweet_mappings[shortened_award_names[best_key]] = award_name
         presenter_1_regex = re.compile('([A-Z][a-z]+)\s([A-Z][a-z]+)')
         presenter_2_regex = re.compile('([A-Z][a-z]+)\s([A-Z][a-z]+)\s(And)\s([A-Z][a-z]+)\s([A-Z][a-z]+)')
         ppt_pre_present = ppt[0:ppt.index(' present')]
         ppt_names = ""
         ppt_pre_present = ' '.join([token.capitalize() for token in ppt_pre_present.split(' ')])
-        if re.match(presenter_2_regex, ppt_pre_present):
+        if re.search(presenter_2_regex, ppt_pre_present):
             ppt_search = re.search(presenter_2_regex, ppt_pre_present)
             ppt_names = [ppt_search.group(1) + " " + ppt_search.group(2),
                          ppt_search.group(4) + " " + ppt_search.group(5)]
             pre_present_trees.append(ppt_names)
             presenters[official_award_punct_dict[shortened_award_names[best_key]]] = ppt_names
-        elif re.match(presenter_1_regex,ppt_pre_present):
+        elif re.match(presenter_1_regex,ppt_pre_present): # using match to be slightly more careful with single person names, as these are often confused with random objects
             ppt_search = re.search(presenter_1_regex,ppt_pre_present)
             name = ppt_search.group(1)+" "+ppt_search.group(2)
             if 'rt' in name[0:3].lower():
@@ -504,7 +512,7 @@ if __name__ == "__main__":
 
     print('Getting presenters...')
     presenters = get_presenters(2013)
-
+    print(presenters)
     print('Finding people...')
     i = 0
     hostTweets = []
