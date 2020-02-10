@@ -176,7 +176,8 @@ def get_awards(year):
     awards = []
     award_freq_dict = dict()
     for pta in potential_award_tweets:
-        award_tokens = pta.lower().split(' ')
+        pta = pta.lower().replace('movie','motion picture') # The globes only use 'motion picture' or 'film' to refer to movies, but tweets are not so consistent
+        award_tokens = pta.split(' ')
         try:
             award_start = award_tokens.index('best') #90% of awards start with best; these are the ones we will find
         except ValueError:
@@ -211,7 +212,7 @@ def get_awards(year):
     return set(awards)
 
 
-def combine_awards(awards_list):
+def combine_and_vote_awards(awards_list):
     awards_comb = {}
     awards_comb_length = {} # This dictionary exists only to save time by reducing the number of iterations through the array
     awards_list = sorted(awards_list, key=len, reverse=True)
@@ -237,8 +238,24 @@ def combine_awards(awards_list):
             awards_comb_length[award] = award_word_count
 
     # Start using those frequencies, with some fuzzy matching as well
-    #for award_name in awards_comb.keys():
-    #    if awards_comb[award_name] >
+    removal_list = []
+    for key1 in awards_comb:
+        '''
+        for key2 in awards_comb:
+            if not ('actor' in key1 and 'actor' not in key2) and not ('actress' in key1 and 'actress' not in key2):
+                if not ('actor' in key1 and 'actress' in key2) and not ('actor' in key2 and 'actress' in key1):
+                    if not ('drama' in key1 and 'musical' in key2 and 'comedy' in key2) and not ('drama' in key2 and 'musical' in key1 and 'comedy' in key1):
+                        if key1 != key2 and fuzz.token_set_ratio(key1,key2) >= 90: # The keys are too similar, one of them has gotta go
+                            if awards_comb[key1] > awards_comb[key2]:
+                                removal_list.append(key2)
+                            else:
+                                removal_list.append(key1)
+        '''
+        if ( ('actor' in key1 or 'actress' in key1) and awards_comb[key1] <= 40) or awards_comb[key1] <= 15: # Awards without actors or actresses tend to be mentioned less
+            removal_list.append(key1)
+
+    for award in set(removal_list):
+        del awards_comb[award]
 
     return awards_comb
 
@@ -300,6 +317,12 @@ def people_in_tweet(tree):
 
 if __name__ == "__main__":
 
+    print('Finding Awards...')
+    awards = get_awards('2013')
+    compiled_awards = combine_and_vote_awards(awards)
+    for key,value in compiled_awards.items():
+        print(key + ": " + str(value))
+
     print('Finding people...')
     i = 0
     hostTweets = []
@@ -340,15 +363,6 @@ if __name__ == "__main__":
     #             voteBoard.updateVote(relation.subject)
     #
     #     voteBoard.displayWinner()
-
-
-
-
-    print('Finding Awards...')
-    awards = get_awards('2013')
-    compiled_awards = combine_awards(awards)
-    #for key,value in compiled_awards.items():
-    #    print(key + ": " + str(value))
 
     award_array = []
     for award in OFFICIAL_AWARDS_1315:
