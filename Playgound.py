@@ -12,7 +12,7 @@ OFFICIAL_AWARDS_1315 = ['cecil b. demille award', 'best motion picture - drama',
 #A comprehensive list of any words that indicate that a certain phrase is an award.
 award_words = ['Best','Motion','Picture','Drama','Musical','Comedy','Performance','Actor','Actress','Supporting','Leading','Role',
                'Director','Movie','Film','Feature','Screenplay','Animated','Foreign','Language','Original','Song','Score',
-               'Television','TV','Series','Mini','Mini-Series','Limited']
+               'Television','TV','Series','Mini','Mini-Series','Miniseries','Limited']
 award_words_lower = [word.lower() for word in award_words]
 #A comprehensive list of any words that appear in an award but don't indicate that it is an award
 helper_words = ['By','In','For','A','An','-',':','Or','Made','Any']
@@ -178,10 +178,9 @@ def get_awards(year):
     for pta in potential_award_tweets:
         pta = pta.lower().replace('movie','motion picture') # The globes only use 'motion picture' or 'film' to refer to movies, but tweets are not so consistent
         award_tokens = pta.split(' ')
-        try:
-            award_start = award_tokens.index('best') #90% of awards start with best; these are the ones we will find
-        except ValueError:
+        if "best" not in award_tokens:
             continue
+        award_start = award_tokens.index("best") #90% of awards start with best; these are the ones we will find
         at_end_award = False
         award_end = award_start
         award_ind = award_start
@@ -203,25 +202,22 @@ def get_awards(year):
             continue
         if len(award_name) >= 3 and award_name[len(award_name)-3:len(award_name)] == "for": # In the sentence "(award name) for (movie or actor), the final 'for' is unwittingly tacked on as a helper word
             award_name = award_name[0:len(award_name)-3]
+        if len(award_name) >= 2 and (award_name[len(award_name)-2] == " -" or award_name[len(award_name)-2] == "by"):
+            award_name = award_name[0:len(award_name)-2]
         awards.append(award_name)
 
     # Frequency voting and process partial awards
 
     #awards = [award.replace(" -","") for award in awards]
-
-    return set(awards)
-
-
-def combine_and_vote_awards(awards_list):
     awards_comb = {}
-    awards_comb_length = {} # This dictionary exists only to save time by reducing the number of iterations through the array
-    awards_list = sorted(awards_list, key=len, reverse=True)
-
+    awards_list = sorted(awards, key=len, reverse=True)
+    print('Combining similar award names and calculating frequency...')
     for award in awards_list:
         award_word_list = [w for w in award.split(' ') if w in award_words_lower]
         award_word_count = len(award_word_list)
         found = False
         for title in awards_comb:
+
             found_word_count = 0
             for word in award.split(' '):
                 if word not in award_words_lower:
@@ -230,12 +226,13 @@ def combine_and_vote_awards(awards_list):
                     found_word_count += 1
 
             if found_word_count == award_word_count: #If every award word in award is in title, they could be the same award
+            #if fuzz.token_sort_ratio(title,award) > 85:
+                #if title == award:
                 found = True
                 awards_comb[title] = awards_comb[title] + 1
 
         if not found:
             awards_comb[award] = 1
-            awards_comb_length[award] = award_word_count
 
     # Start using those frequencies, with some fuzzy matching as well
     removal_list = []
@@ -251,13 +248,17 @@ def combine_and_vote_awards(awards_list):
                             else:
                                 removal_list.append(key1)
         '''
-        if ( ('actor' in key1 or 'actress' in key1) and awards_comb[key1] <= 40) or awards_comb[key1] <= 15: # Awards without actors or actresses tend to be mentioned less
+        if ( ('actor' in key1 or 'actress' in key1) and awards_comb[key1] <= 600) or awards_comb[key1] <= 250: # Awards without actors or actresses tend to be mentioned less
             removal_list.append(key1)
 
     for award in set(removal_list):
         del awards_comb[award]
-
+    print(len(awards_comb.keys()))
     return awards_comb
+
+
+#def combine_and_vote_awards(awards_list):
+
 
 
 def combine_people(people_list):
@@ -319,8 +320,8 @@ if __name__ == "__main__":
 
     print('Finding Awards...')
     awards = get_awards('2013')
-    compiled_awards = combine_and_vote_awards(awards)
-    for key,value in compiled_awards.items():
+    print(awards)
+    for key,value in awards.items():
         print(key + ": " + str(value))
 
     print('Finding people...')
