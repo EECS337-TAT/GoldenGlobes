@@ -118,7 +118,7 @@ class Award:
                 max = people_comb[person]
                 winner = person
 
-        #print(winner + "won " + self.title)
+        print(winner + "won " + self.title)
         return winner
 
 
