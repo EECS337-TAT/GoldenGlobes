@@ -64,7 +64,7 @@ def objectSearch(tree, index):
                 index = index + 1
         index = index+1
 
-    return object
+    return object[:-1]
 
 
 def subjectSearch(tree, index):
@@ -73,7 +73,7 @@ def subjectSearch(tree, index):
             subject = ""
             for word_pair in tree[i]:
                 subject = subject + word_pair[0] + ' '
-            return subject
+            return subject[:-1]
 
 
 def buildRelation(text, verbs):
@@ -85,9 +85,12 @@ def buildRelation(text, verbs):
 
     [tagIndex, verb] = wordIndexInTree(tagged,verbs)
     obj = objectSearch(tagged, tagIndex)
-    subj = subjectSearch(tree, wordIndexInTree(tree, verbs)[0])
-    if obj == "" or subj is None:
+    if obj == "":
         return None
+    subj = subjectSearch(tree, wordIndexInTree(tree, verbs)[0])
+    if subj is None:
+        return None
+
 
     return Relation(obj, verb, subj)
 
@@ -118,7 +121,7 @@ class Award:
                 max = people_comb[person]
                 winner = person
 
-        print(winner + "won " + self.title)
+        print(winner + " won " + self.title)
         return winner
 
 
@@ -250,16 +253,33 @@ def combine_people(people_list):
 
     for tweet in people_list:
         found = False
+    # 1. The following for loop combines people according to whichever one is the superstring.
+    # This may potentially be an issue if a longer phrase is mis-identified as a person.
+    # Note, this is partially due to sorting by length above.
+    #    for title in people_comb:
+    #        if tweet in title:
+    #            people_comb[title] = people_comb[title] + 1
+    #            found = True
+    #            break
+    #    if not found:
+    #        people_comb[tweet] = 1
+
+    # 2. The following for loop combines people according to frequency.
+    # This may potentially be an issue if a nickname or similar is commonly used to reference a person.
+        if " " in tweet and tweet not in people_comb:
+                people_comb[tweet] = 1
         for title in people_comb:
-            if tweet in title:
-                people_comb[title] = people_comb[title] + 1
-                found = True
-                break
-        if not found:
-            people_comb[tweet] = 1
+            if title in tweet:
+                people_comb[tweet] += 1
+        #    elif tweet in title:
+        #        people_comb[title] = people_comb[title] + 1
+
+    #            found = True
+
+
 
     host_list = []
-    cutoff = total*.10  # 1/4 of mentions
+    cutoff = total*.20  # 1/4 of mentions
     for host in people_comb:
         #print(host + " :: " + str(people_comb[host]))
         if people_comb[host] > cutoff:
@@ -293,7 +313,7 @@ def people_in_tweet(tree):
             subject = ""
             for word_pair in tree[i]:
                 subject = subject + word_pair[0] + ' '
-            peopleArr.append(subject)
+            peopleArr.append(subject[:-1])
 
     return peopleArr
 
@@ -311,9 +331,11 @@ if __name__ == "__main__":
             if " " + wW + " " in temp['text']:
                 winTweets.append(temp)
                 break
-        if " host " in temp['text']:
+        if " host " in temp['text'] and " next " not in temp['text']:
             hostTweets.append(temp)
         #i += 1
+
+    print
 
     peopleList = find_people(hostTweets)
     print(peopleList)
