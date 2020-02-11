@@ -1,4 +1,6 @@
 Golden Globe Project
+By Thomas Barnett, Alex Banta, and Titus Pahn
+Github repository at https://github.com/EECS337-TAT/GoldenGlobes
 
 Before running the project:
 
