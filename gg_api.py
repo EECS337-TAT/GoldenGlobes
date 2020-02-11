@@ -93,6 +93,7 @@ class Relation:
 # FUNCTIONS START HERE
 #
 #
+"""
 def unstop():
     whatever = data[0]
     data_tokens = nltk.word_tokenize(whatever)
@@ -103,7 +104,7 @@ def unstop():
             unstopped_sentence.append(t)
 
     print(unstopped_sentence)
-
+"""
 
 def unhashtag(tweet_text):
     if "RT " in tweet_text and ":" in tweet_text:
@@ -325,7 +326,8 @@ def combine_people(people_list):
     for host in people_comb:
         #print(host + " :: " + str(people_comb[host]))
         if people_comb[host] > cutoff:
-            host_list.append(host + " :: " + str(people_comb[host]))
+            # host_list.append(host + " :: " + str(people_comb[host]))
+            host_list.append(host)
 
     return host_list
 
@@ -414,6 +416,11 @@ def get_hosts(year):
     '''Hosts is a list of one or more strings. Do NOT change the name
     of this function or what it returns.'''
     # Your code here
+    with open('gg%s.json' % year) as json_file:
+        data = json.load(json_file)
+    if year == '2013' or year == '2015':
+        official_awards = OFFICIAL_AWARDS_1315.copy()
+
     hostTweets = []
     for temp in data:
         if " host " in temp['text'] and " next " not in temp['text']:
@@ -433,12 +440,14 @@ def get_awards(year):
     '''Awards is a list of strings. Do NOT change the name
     of this function or what it returns.'''
     # Your code here
+    with open('gg%s.json' % year) as json_file:
+        data = json.load(json_file)
+    if year == '2013' or year == '2015':
+        official_awards = OFFICIAL_AWARDS_1315.copy()
     awards = []
 
-    awarded = OFFICIAL_AWARDS_1315.copy()
-
-    for aw in awarded:
-        print(aw)
+    for aw in official_awards:
+        #print(aw)
         awards.append(aw)
 
     #awards = json.dumps(awards)
@@ -449,12 +458,83 @@ def get_nominees(year):
     names as keys, and each entry a list of strings. Do NOT change
     the name of this function or what it returns.'''
     # Your code here
-    nominees = dict()
+    with open('gg%s.json' % year) as json_file:
+        data = json.load(json_file)
+    if year == '2013' or year == '2015':
+        official_awards = OFFICIAL_AWARDS_1315.copy()
+    nomWords = ["lost", "loses", "Lost", "Loses", "nominated", "nominee", "nominating", "nominates", "Lost", "Loses",
+                "Nominated", "Nominee", "Nominating", "Nominates"]
 
-    awards = OFFICIAL_AWARDS_1315
-    for aw in awards:
-        print(aw)
-        nominees[aw] = ["r", "r2"]
+    nominees = dict()
+    people_comb = {}
+
+    possible_nominees = []
+    nomTweets = []
+    nomRelations = []
+
+    for temp in data:
+        # temp = data[i]
+        for nW in nomWords:
+            if " " + nW + " " in temp['text']:
+                nomTweets.append(temp)
+                break
+
+    people_list = sorted(possible_nominees, key=len, reverse=True)
+    total = 0
+
+    for tweet in people_list:
+        found = False
+        for title in people_comb:
+            if tweet.lower() in title:
+                people_comb[title] = people_comb[title] + 1
+                total = total + 1
+                found = True
+                break
+        if not found:
+            people_comb[tweet.lower()] = 1
+            total = total + 1
+
+    for i in range(0, len(people_list)):
+        text = people_list[i]['text']
+        relation = buildRelation(text, people_list)
+
+        if relation is not None:
+            nomRelations.append(relation)
+
+    winner = ""
+
+    for person in people_comb:
+        if people_comb[person] > .1 * total and person != winner and len(person) > 2:
+            nominees.append(person)
+
+    for nom_name in nominees:
+        print(nom_name + " nom for " + title)
+
+
+    for relation in nomRelations:
+        max = -1
+        most_likely = "garbage"
+        for award in official_awards:
+            # TODO :: TEST WHICH FUZZ METHOD IS MOST ACCURATE
+            fuzz_val = fuzz.partial_token_sort_ratio(award.title.lower(), relation.object.lower())
+            if max < fuzz_val:
+                max = fuzz_val
+                most_likely = award
+
+        ungolden = relation.subject.replace('golden', '').replace('globes', '').replace('goldenglobes', '').replace(
+            'academy awards', '')
+        most_likely.possible_nominees.append(ungolden)
+
+    for award in award_array:
+        tempArr = award.findWinner()
+        nominees[tempArr[0]] = tempArr[1]
+    print(nominees)
+
+    #
+    #
+    # for aw in official_awards:
+    #     #print(aw)
+    #     nominees[aw] = ["r", "r2"]
 
     #nominees = json.dumps(nominees)
 
@@ -465,6 +545,12 @@ def get_winner(year):
     names as keys, and each entry containing a single string.
     Do NOT change the name of this function or what it returns.'''
     # Your code here
+    with open('gg%s.json' % year) as json_file:
+        data = json.load(json_file)
+    if year == '2013' or year == '2015':
+        official_awards = OFFICIAL_AWARDS_1315.copy()
+
+
     winners = {}
 
     print('Finding people...')
@@ -502,6 +588,7 @@ def get_winner(year):
         max = -1
         most_likely = "garbage"
         for award in award_array:
+
             # TODO :: TEST WHICH FUZZ METHOD IS MOST ACCURATE
             fuzz_val = fuzz.partial_token_sort_ratio(award.title.lower(), relation.object.lower())
             if max < fuzz_val:
@@ -530,6 +617,8 @@ def get_presenters(year):
     for aw in awards:
         presenters[aw] = "r"
     """
+    with open('gg%s.json' % year) as json_file:
+        data = json.load(json_file)
 
     official_awards = []
     official_award_punct_dict = dict()
@@ -587,13 +676,13 @@ def get_presenters(year):
 
         for s in shortened_award_names.keys():
             similarity = fuzz.token_set_ratio(s, award_name)
-            print(s)
+            #print(s)
             if best_key == "" or (similarity >= max_similarity and len(s) >= max_len):
-                print("hello, i'm running just fine, thx")
+                #print("hello, i'm running just fine, thx")
                 max_similarity = similarity
                 max_len = len(s)
                 best_key = s
-        print("best_key: " + best_key)
+        #print("best_key: " + best_key)
         award_tweet_mappings[shortened_award_names[best_key]] = award_name
         presenter_1_regex = re.compile('([A-Z][a-z]+)\s([A-Z][a-z]+)')
         presenter_2_regex = re.compile('([A-Z][a-z]+)\s([A-Z][a-z]+)\s(And)\s([A-Z][a-z]+)\s([A-Z][a-z]+)')
@@ -628,6 +717,11 @@ def pre_ceremony():
     plain text file. It is the first thing the TA will run when grading.
     Do NOT change the name of this function or what it returns.'''
     # Your code here
+    nltk.download('punkt')
+    nltk.download('stopwords')
+    nltk.download('averaged_perceptron_tagger')
+    nltk.download('maxent_ne_chunkr')
+    nltk.download('words')
     print("Pre-ceremony processing complete.")
     return
 
@@ -640,19 +734,20 @@ def main():
     run when grading. Do NOT change the name of this function or
     what it returns.'''
     # Your code here
-    year = 2013
+    pre_ceremony()
+
+    year = '2013'
     theHosts = get_hosts(year)
 
 
+    get_awards(year)
 
-    get_awards(2013)
-
-    get_nominees(2013)
+    get_nominees(year)
 
     #winner = get_winner(2013)
 
 
-    get_presenters(2013)
+    get_presenters(year)
 
 
     return
