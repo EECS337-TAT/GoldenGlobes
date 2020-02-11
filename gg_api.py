@@ -426,7 +426,7 @@ def get_hosts(year):
         hostStr += h + ", "
     print("Host(s): " + hostStr[:-2])
 
-    hosts = json.dumps(hosts)
+    #hosts = json.dumps(hosts)
     return hosts
 
 def get_awards(year):
@@ -438,9 +438,10 @@ def get_awards(year):
     awarded = OFFICIAL_AWARDS_1315.copy()
 
     for aw in awarded:
+        print(aw)
         awards.append(aw)
 
-    awards = json.dumps(awards)
+    #awards = json.dumps(awards)
     return awards
 
 def get_nominees(year):
@@ -448,13 +449,15 @@ def get_nominees(year):
     names as keys, and each entry a list of strings. Do NOT change
     the name of this function or what it returns.'''
     # Your code here
-    nominees = {}
+    nominees = dict()
 
-    awards = OFFICIAL_AWARDS_1315.copy()
+    awards = OFFICIAL_AWARDS_1315
     for aw in awards:
-        nominees[aw] = "r"
+        print(aw)
+        nominees[aw] = ["r", "r2"]
 
-    nominees = json.dumps(nominees)
+    #nominees = json.dumps(nominees)
+
     return nominees
 
 def get_winner(year):
@@ -513,7 +516,7 @@ def get_winner(year):
         tempArr = award.findWinner()
         winners[tempArr[0]] = tempArr[1]
     print(winners)
-    winners = json.dumps(winners)
+    #winners = json.dumps(winners)
     return winners
 
 def get_presenters(year):
@@ -530,7 +533,7 @@ def get_presenters(year):
 
     official_awards = []
     official_award_punct_dict = dict()
-    if (year == 2013):
+    if year == '2013' or year == '2015':
         official_awards = OFFICIAL_AWARDS_1315.copy()
     # elif (year == 2018):
     #    official_awards = OFFICIAL_AWARDS_1819.copy()
@@ -581,12 +584,16 @@ def get_presenters(year):
         max_similarity = 0
         max_len = 0
         best_key = ""
+
         for s in shortened_award_names.keys():
             similarity = fuzz.token_set_ratio(s, award_name)
+            print(s)
             if best_key == "" or (similarity >= max_similarity and len(s) >= max_len):
+                print("hello, i'm running just fine, thx")
                 max_similarity = similarity
                 max_len = len(s)
                 best_key = s
+        print("best_key: " + best_key)
         award_tweet_mappings[shortened_award_names[best_key]] = award_name
         presenter_1_regex = re.compile('([A-Z][a-z]+)\s([A-Z][a-z]+)')
         presenter_2_regex = re.compile('([A-Z][a-z]+)\s([A-Z][a-z]+)\s(And)\s([A-Z][a-z]+)\s([A-Z][a-z]+)')
@@ -598,6 +605,7 @@ def get_presenters(year):
             ppt_names = [ppt_search.group(1) + " " + ppt_search.group(2),
                          ppt_search.group(4) + " " + ppt_search.group(5)]
             pre_present_trees.append(ppt_names)
+
             presenters[official_award_punct_dict[shortened_award_names[best_key]]] = ppt_names
         elif re.match(presenter_1_regex, ppt_pre_present):
             ppt_search = re.search(presenter_1_regex, ppt_pre_present)
@@ -606,8 +614,12 @@ def get_presenters(year):
                 continue
             pre_present_trees.append(name)
             presenters[official_award_punct_dict[shortened_award_names[best_key]]] = name
+    for award in official_award_punct_dict:
+        if award not in presenters:
+            presenters[award] = ""
 
-    presenters = json.dumps(presenters)
+    print(presenters)
+    #presenters = json.dumps(presenters)
     return presenters
 
 def pre_ceremony():
@@ -637,7 +649,7 @@ def main():
 
     get_nominees(2013)
 
-    winner = get_winner(2013)
+    #winner = get_winner(2013)
 
 
     get_presenters(2013)
