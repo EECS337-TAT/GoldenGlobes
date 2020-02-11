@@ -28,7 +28,8 @@ helper_words_lower = [word.lower() for word in helper_words]
 
 
 # CLASSES START HERE
-
+#
+#
 class Award:
     def __init__(self, title):
         self.title = title
@@ -65,7 +66,7 @@ class Award:
             attempt = attempt + 1
 
         print(winner + " won " + self.title)
-        return winner
+        return (self.title, winner)
 
 
 class Relation:
@@ -78,13 +79,14 @@ class Relation:
         print("Subject: " + self.subject)
         print("Verb: " + self.verb)
         print("Object: " + self.object)
-
-
+#
+#
 # CLASSES END HERE
 
 
 # FUNCTIONS START HERE
-
+#
+#
 def unstop():
     whatever = data[0]
     data_tokens = nltk.word_tokenize(whatever)
@@ -479,6 +481,9 @@ def movie_person_cleaner(name, award):
     return str(final_name).lower()
 
 
+#OG API Functions
+#
+#
 def get_hosts(year):
     '''Hosts is a list of one or more strings. Do NOT change the name
     of this function or what it returns.'''
@@ -490,6 +495,12 @@ def get_hosts(year):
 
     hosts = find_people(hostTweets)
 
+    hostStr = ""
+    for h in hosts:
+        hostStr += h + ", "
+    print("Host(s): " + hostStr[:-2])
+
+    hosts = json.dumps(hosts)
     return hosts
 
 def get_awards(year):
@@ -498,6 +509,12 @@ def get_awards(year):
     # Your code here
     awards = []
 
+    awarded = OFFICIAL_AWARDS_1315.copy()
+
+    for aw in awarded:
+        awards.append(aw)
+
+    awards = json.dumps(awards)
     return awards
 
 def get_nominees(year):
@@ -507,6 +524,11 @@ def get_nominees(year):
     # Your code here
     nominees = {}
 
+    awards = OFFICIAL_AWARDS_1315.copy()
+    for aw in awards:
+        nominees[aw] = "r"
+
+    nominees = json.dumps(nominees)
     return nominees
 
 def get_winner(year):
@@ -517,7 +539,6 @@ def get_winner(year):
     winners = {}
 
     print('Finding people...')
-    i = 0
     winTweets = []
     winWords = ["won", "wins"]
     for temp in data:
@@ -534,8 +555,6 @@ def get_winner(year):
     for i in range(0, len(winTweets)):
         text = winTweets[i]['text']
         relation = buildRelation(text, winWords)
-
-        # print(str(i) + ": " + text)
 
         if relation is not None:
             cleanRelation.append(relation)
@@ -565,9 +584,10 @@ def get_winner(year):
         most_likely.people.append(ungolden)
 
     for award in award_array:
-        award.findWinner()
-
-
+        tempArr = award.findWinner()
+        winners[tempArr[0]] = tempArr[1]
+    print(winners)
+    winners = json.dumps(winners)
     return winners
 
 def get_presenters(year):
@@ -576,7 +596,11 @@ def get_presenters(year):
     name of this function or what it returns.'''
     # Your code here
     presenters = {}
+    awards = OFFICIAL_AWARDS_1315.copy()
+    for aw in awards:
+        presenters[aw] = "r"
 
+    presenters = json.dumps(presenters)
     return presenters
 
 def pre_ceremony():
@@ -599,18 +623,15 @@ def main():
     # Your code here
     year = 2013
     theHosts = get_hosts(year)
-    hostStr = ""
-    for h in theHosts:
-        hostStr += h + ", "
-    print("Host(s): " + hostStr[:-2])
-    print(json.dumps(theHosts))
+
+
 
     get_awards(2013)
 
     get_nominees(2013)
 
     winner = get_winner(2013)
-    print(winner)
+
 
     get_presenters(2013)
 
