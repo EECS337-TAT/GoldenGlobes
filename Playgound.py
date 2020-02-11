@@ -380,6 +380,100 @@ def get_awards(year):
     print(len(awards_comb.keys()))
     return awards_comb
 
+def get_awards_alt(year):
+
+    awards = []
+    award_freq = dict()
+    potential_award_tweets = []
+    subject_regex = re.compile(' (w(ins|on)) ')
+    object_regex = re.compile(' (goes|went) to ')
+
+    for tweet in data:
+        tweet = tweet['text'] # Note: lower is NOT USED! Capitalization is important for detecting titles
+        for punct in string.punctuation:
+            if punct == '-':
+                continue # Preserve these - they help differentiate some awards
+            elif punct == ':':
+                tweet = tweet.replace(':',' :') # Preserve these; they are present in official tweets with award titles and help detect official tweets
+            else:
+                tweet = tweet.replace(punct,'')
+        if 'Best' not in tweet:
+            continue
+
+        potential_award_tweets.append(tweet)
+    first_names = set()
+    for tweet in potential_award_tweets:
+        if 'Best' in tweet:
+            #if 'Performance' in tweet:
+            #    print('debug')
+            #Find names after a hyphen - that's where they tend to be, and if you look at the whole tweet you get weird results from nltk
+            first_name = None
+            human_name_regex = re.compile('-\s([A-Z][a-z]+)\s([A-Z][a-z]+)\s')
+            human_name_search = re.search(human_name_regex,tweet)
+            if human_name_search:
+                if not (human_name_search.group(1) == 'Motion' and human_name_search.group(2) == 'Picture'): # Filter out movies - we only want names
+                    first_name = human_name_search.group(1)
+                    if human_name_search.group(1) not in first_names:
+                        first_names.add(first_name)
+
+            award_name = ""
+            terminators = ['goes','Goes',':','is','Is','goldenglobes','Goldenglobes','GoldenGlobes',first_name] # Words that indicate the end of an award.
+            tweet = tweet[tweet.index('Best'):len(tweet)]
+            correctlyTerminated = True
+            for token in tweet.split(' '):
+                if token not in terminators and token != token.capitalize() and token not in helper_words_lower:
+                    correctlyTerminated = False # If each word is not capitalized, it's not an official award title
+                    break
+                elif token not in terminators:
+                    award_name += token + " "
+                else:
+                    break
+            if not correctlyTerminated or len(award_name.split(' ')) < 3:
+                continue
+            tokens = award_name.split(' ')
+            while tokens[len(tokens)-1] == '-' or tokens[len(tokens)-1] == '': # chop final hyphens and empty spaces
+                award_name = ' '.join(tokens[0:len(tokens)-1])
+                tokens = award_name.split(' ')
+            award_name = award_name.replace('  ',' ')
+            found = False
+            for key in award_freq.keys():
+                if award_name == key: # Subsets of award names could be referring to that award name
+                    found = True
+                    award_freq[key] += 1
+            if not found:
+                award_freq[award_name] = 0
+
+    removal_list = []
+    for award in award_freq.keys():
+        if len(award) < 3 or award_freq[award] < 40:
+            removal_list.append(award)
+    for award in removal_list:
+        del award_freq[award]
+
+    # Combine some similar awards to finish out the search
+    final_pruning_set = set()
+    for remaining_award in award_freq.keys():
+        for remaining_award_2 in award_freq.keys():
+            if remaining_award in final_pruning_set or remaining_award_2 in final_pruning_set:
+                continue
+            elif remaining_award == remaining_award_2:
+                continue
+            remaining_award_nohyp = remaining_award.replace('-','').strip().lower()
+            remaining_award_2_nohyp = remaining_award_2.replace('-','').strip().lower()
+            if fuzz.token_sort_ratio(remaining_award_nohyp,remaining_award_2_nohyp) == 100: # keep the hyphen
+                if '-' not in remaining_award:
+                    final_pruning_set.add(remaining_award)
+                else:
+                    final_pruning_set.add(remaining_award_2)
+            elif remaining_award in remaining_award_2:
+                final_pruning_set.add(remaining_award)
+            elif remaining_award_2 in remaining_award:
+                final_pruning_set.add(remaining_award_2)
+    for award in final_pruning_set:
+        del award_freq[award]
+
+
+    return award_freq.keys()
 
 def combine_people(people_list):
     people_comb = {}
@@ -554,12 +648,14 @@ if __name__ == "__main__":
     #
     #     voteBoard.displayWinner()
 
-
-
-
-    print('Finding Awards...')
-    awards = get_awards('2013')
+    print('Finding awards with relations...')
+    awards = get_awards_alt(2013)
     print(awards)
+
+
+    #print('Finding Awards...')
+    #awards = get_awards('2013')
+    #print(awards)
 
     award_array = []
     for award in OFFICIAL_AWARDS_1315:
@@ -591,7 +687,6 @@ if __name__ == "__main__":
     for award in award_array:
         award.findWinner()
 
-    # voteBoard.displayWinner()
 
 #TODO
 # 2. Subject finder defintely is not getting movies correctly
