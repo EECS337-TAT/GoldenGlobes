@@ -19,3 +19,10 @@ All methods are in gg_api. To run the autograder, use
 run 'gg_api.py' and it will return a dictionary of output
 for the year 2013. For other years you can call individual
 methods from the python interpreter.
+
+Extra notes:
+
+The awards method our program uses for the autograder
+is not 'get_awards' but 'get_awards_alt'.  The former 
+uses an array of award words, but the latter avoids 
+this strategy.
