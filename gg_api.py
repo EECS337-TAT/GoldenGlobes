@@ -18,8 +18,8 @@ OFFICIAL_AWARDS_1819 = ['best motion picture - drama', 'best motion picture - mu
 # IMDb Helper
 ia = IMDb()
 
-with open('gg2013.json') as json_file:
-    data = json.load(json_file)
+#with open('gg2013.json') as json_file:
+#    data = json.load(json_file)
 
 stop_words = set(stopwords.words('english'))
 
@@ -40,6 +40,7 @@ class Award:
     def __init__(self, title):
         self.title = title
         self.people = []
+        self.possible_nominees = []
 
     def findWinner(self):
         people_comb = {}
@@ -71,8 +72,37 @@ class Award:
                 winner = winner_clean
             attempt = attempt + 1
 
-        print(winner + " won " + self.title)
+        #print(winner + " won " + self.title)
         return (self.title, winner)
+
+    def findNoms(self):
+        people_list = sorted(self.possible_nominees, key=len, reverse=True)
+        total = 0
+        nom_comb = {}
+
+        for tweet in people_list:
+            found = False
+            for title in nom_comb:
+                if tweet.lower() in title:
+                    nom_comb[title] = nom_comb[title] + 1
+                    total = total + 1
+                    found = True
+                    break
+            if not found:
+                nom_comb[tweet.lower()] = 1
+                total = total + 1
+
+        nominees = []
+        for person in nom_comb:
+            if nom_comb[person] > .08 * total and len(person) > 2:
+                nominees.append(person)
+
+        #for nom_name in nominees:
+        #    print(nom_name + " nom for " + self.title)
+
+        return [self.title, nominees]
+
+
 
 
 class Relation:
@@ -162,10 +192,15 @@ def buildRelation(text, verbs):
         [tagIndex, verb] = wordIndexInTree(tagged,verbs)
     except:
         return None
+
     obj = objectSearch(tagged, tagIndex)
     if obj == "":
         return None
-    subj = subjectSearch(tree, wordIndexInTree(tree, verbs)[0])
+    try:
+        [treeIndex, verb] = wordIndexInTree(tree, verbs)
+    except:
+        return None
+    subj = subjectSearch(tree, treeIndex)
     if subj is None:
         return None
 
@@ -420,6 +455,8 @@ def get_hosts(year):
         data = json.load(json_file)
     if year == '2013' or year == '2015':
         official_awards = OFFICIAL_AWARDS_1315.copy()
+    elif year == '2018' or year == '2019':
+        official_awards = OFFICIAL_AWARDS_1819.copy()
 
     hostTweets = []
     for temp in data:
@@ -428,10 +465,10 @@ def get_hosts(year):
 
     hosts = find_people(hostTweets)
 
-    hostStr = ""
-    for h in hosts:
-        hostStr += h + ", "
-    print("Host(s): " + hostStr[:-2])
+    #hostStr = ""
+    #for h in hosts:
+    #    hostStr += h + ", "
+    #print("Host(s): " + hostStr[:-2])
 
     #hosts = json.dumps(hosts)
     return hosts
@@ -444,14 +481,117 @@ def get_awards(year):
         data = json.load(json_file)
     if year == '2013' or year == '2015':
         official_awards = OFFICIAL_AWARDS_1315.copy()
+    elif year == '2018' or year == '2019':
+        official_awards = OFFICIAL_AWARDS_1819.copy()
     awards = []
 
+    print('Finding Awards...')
+
+    award_freq = dict()
+    potential_award_tweets = []
+    subject_regex = re.compile(' (w(ins|on)) ')
+    object_regex = re.compile(' (goes|went) to ')
+
+    for tweet in data:
+        tweet = tweet['text']  # Note: lower is NOT USED! Capitalization is important for detecting titles
+        for punct in string.punctuation:
+            if punct == '-':
+                continue  # Preserve these - they help differentiate some awards
+            elif punct == ':':
+                tweet = tweet.replace(':',
+                                      ' :')  # Preserve these; they are present in official tweets with award titles and help detect official tweets
+            else:
+                tweet = tweet.replace(punct, '')
+        if 'Best' not in tweet:
+            continue
+
+        potential_award_tweets.append(tweet)
+    first_names = set()
+    for tweet in potential_award_tweets:
+        if 'Best' in tweet:
+            # if 'Performance' in tweet:
+            #    print('debug')
+            # Find names after a hyphen - that's where they tend to be, and if you look at the whole tweet you get weird results from nltk
+            first_name = None
+            human_name_regex = re.compile('-\s([A-Z][a-z]+)\s([A-Z][a-z]+)\s')
+            human_name_search = re.search(human_name_regex, tweet)
+            if human_name_search:
+                if not (human_name_search.group(1) == 'Motion' and human_name_search.group(
+                        2) == 'Picture'):  # Filter out movies - we only want names
+                    first_name = human_name_search.group(1)
+                    if human_name_search.group(1) not in first_names:
+                        first_names.add(first_name)
+
+            award_name = ""
+            terminators = ['goes', 'Goes', ':', 'is', 'Is', 'goldenglobes', 'Goldenglobes', 'GoldenGlobes',
+                           first_name]  # Words that indicate the end of an award.
+            tweet = tweet[tweet.index('Best'):len(tweet)]
+            correctlyTerminated = True
+            for token in tweet.split(' '):
+                if token not in terminators and token != token.capitalize() and token not in helper_words_lower:
+                    correctlyTerminated = False  # If each word is not capitalized, it's not an official award title
+                    break
+                elif token not in terminators:
+                    award_name += token + " "
+                else:
+                    break
+            if not correctlyTerminated or len(award_name.split(' ')) < 3:
+                continue
+            tokens = award_name.split(' ')
+            while tokens[len(tokens) - 1] == '-' or tokens[
+                len(tokens) - 1] == '':  # chop final hyphens and empty spaces
+                award_name = ' '.join(tokens[0:len(tokens) - 1])
+                tokens = award_name.split(' ')
+            award_name = award_name.replace('  ', ' ')
+            found = False
+            for key in award_freq.keys():
+                if award_name == key:  # Subsets of award names could be referring to that award name
+                    found = True
+                    award_freq[key] += 1
+            if not found:
+                award_freq[award_name] = 0
+
+    removal_list = []
+    for award in award_freq.keys():
+        if len(award) < 3 or award_freq[award] < 40:
+            removal_list.append(award)
+    for award in removal_list:
+        del award_freq[award]
+
+    # Combine some similar awards to finish out the search
+    final_pruning_set = set()
+    for remaining_award in award_freq.keys():
+        for remaining_award_2 in award_freq.keys():
+            if remaining_award in final_pruning_set or remaining_award_2 in final_pruning_set:
+                continue
+            elif remaining_award == remaining_award_2:
+                continue
+            remaining_award_nohyp = remaining_award.replace('-', '').strip().lower()
+            remaining_award_2_nohyp = remaining_award_2.replace('-', '').strip().lower()
+            if fuzz.token_sort_ratio(remaining_award_nohyp, remaining_award_2_nohyp) == 100:  # keep the hyphen
+                if '-' not in remaining_award:
+                    final_pruning_set.add(remaining_award)
+                else:
+                    final_pruning_set.add(remaining_award_2)
+            elif remaining_award in remaining_award_2:
+                final_pruning_set.add(remaining_award)
+            elif remaining_award_2 in remaining_award:
+                final_pruning_set.add(remaining_award_2)
+    for award in final_pruning_set:
+        del award_freq[award]
+
+    actualAwards = award_freq.keys()
+    #print(actualAwards)
+
+    return list(actualAwards)
+"""
     for aw in official_awards:
         #print(aw)
         awards.append(aw)
-
+"""
     #awards = json.dumps(awards)
-    return awards
+    #return awards
+
 
 def get_nominees(year):
     '''Nominees is a dictionary with the hard coded award
@@ -462,15 +602,19 @@ def get_nominees(year):
         data = json.load(json_file)
     if year == '2013' or year == '2015':
         official_awards = OFFICIAL_AWARDS_1315.copy()
+    elif year == '2018' or year == '2019':
+        official_awards = OFFICIAL_AWARDS_1819.copy()
     nomWords = ["lost", "loses", "Lost", "Loses", "nominated", "nominee", "nominating", "nominates", "Lost", "Loses",
                 "Nominated", "Nominee", "Nominating", "Nominates"]
 
     nominees = dict()
-    people_comb = {}
 
-    possible_nominees = []
     nomTweets = []
     nomRelations = []
+
+    award_array = []
+    for award in official_awards:
+        award_array.append(Award(award))
 
     for temp in data:
         # temp = data[i]
@@ -478,43 +622,23 @@ def get_nominees(year):
             if " " + nW + " " in temp['text']:
                 nomTweets.append(temp)
                 break
+    #print(len(nomTweets))
 
-    people_list = sorted(possible_nominees, key=len, reverse=True)
-    total = 0
-
-    for tweet in people_list:
-        found = False
-        for title in people_comb:
-            if tweet.lower() in title:
-                people_comb[title] = people_comb[title] + 1
-                total = total + 1
-                found = True
-                break
-        if not found:
-            people_comb[tweet.lower()] = 1
-            total = total + 1
-
-    for i in range(0, len(people_list)):
-        text = people_list[i]['text']
-        relation = buildRelation(text, people_list)
+    for i in range(0, len(nomTweets)):
+        text = nomTweets[i]['text']
+        relation = buildRelation(text, nomWords)
 
         if relation is not None:
             nomRelations.append(relation)
+    #print(len(nomRelations))
 
-    winner = ""
-
-    for person in people_comb:
-        if people_comb[person] > .1 * total and person != winner and len(person) > 2:
-            nominees.append(person)
-
-    for nom_name in nominees:
-        print(nom_name + " nom for " + title)
+    #possible_nominees = find_people(nomTweets)
 
 
     for relation in nomRelations:
         max = -1
         most_likely = "garbage"
-        for award in official_awards:
+        for award in award_array:
             # TODO :: TEST WHICH FUZZ METHOD IS MOST ACCURATE
             fuzz_val = fuzz.partial_token_sort_ratio(award.title.lower(), relation.object.lower())
             if max < fuzz_val:
@@ -526,9 +650,9 @@ def get_nominees(year):
         most_likely.possible_nominees.append(ungolden)
 
     for award in award_array:
-        tempArr = award.findWinner()
+        tempArr = award.findNoms()
         nominees[tempArr[0]] = tempArr[1]
-    print(nominees)
+    #print(nominees)
 
     #
     #
@@ -549,7 +673,8 @@ def get_winner(year):
         data = json.load(json_file)
     if year == '2013' or year == '2015':
         official_awards = OFFICIAL_AWARDS_1315.copy()
-
+    elif year == '2018' or year == '2019':
+        official_awards = OFFICIAL_AWARDS_1819.copy()
 
     winners = {}
 
@@ -574,9 +699,9 @@ def get_winner(year):
         if relation is not None:
             cleanRelation.append(relation)
 
-    print('Finding Awards...')
-    awards = get_awards('2013')
-    print(awards)
+    #print('Finding Awards...')
+    #awards = get_awards(year)
+    #print(awards)
 
     award_array = []
     for award in OFFICIAL_AWARDS_1315:
@@ -602,7 +727,7 @@ def get_winner(year):
     for award in award_array:
         tempArr = award.findWinner()
         winners[tempArr[0]] = tempArr[1]
-    print(winners)
+    #print(winners)
     #winners = json.dumps(winners)
     return winners
 
@@ -624,6 +749,9 @@ def get_presenters(year):
     official_award_punct_dict = dict()
     if year == '2013' or year == '2015':
         official_awards = OFFICIAL_AWARDS_1315.copy()
+    elif year == '2018' or year == '2019':
+        official_awards = OFFICIAL_AWARDS_1819.copy()
+
     # elif (year == 2018):
     #    official_awards = OFFICIAL_AWARDS_1819.copy()
     # elif (year == 2018):
@@ -707,7 +835,7 @@ def get_presenters(year):
         if award not in presenters:
             presenters[award] = ""
 
-    print(presenters)
+    #print(presenters)
     #presenters = json.dumps(presenters)
     return presenters
 
@@ -720,7 +848,7 @@ def pre_ceremony():
     nltk.download('punkt')
     nltk.download('stopwords')
     nltk.download('averaged_perceptron_tagger')
-    nltk.download('maxent_ne_chunkr')
+    nltk.download('maxent_ne_chunker')
     nltk.download('words')
     print("Pre-ceremony processing complete.")
     return
@@ -737,17 +865,57 @@ def main():
     pre_ceremony()
 
     year = '2013'
+
+    if year == '2013' or year == '2015':
+        official_awards = OFFICIAL_AWARDS_1315.copy()
+    elif year == '2018' or year == '2019':
+        official_awards = OFFICIAL_AWARDS_1819.copy()
+
     theHosts = get_hosts(year)
 
 
-    get_awards(year)
+    theAwards = get_awards(year)
 
-    get_nominees(year)
+    theNominees = get_nominees(year)
 
-    #winner = get_winner(2013)
+    winner = get_winner(2013)
 
 
-    get_presenters(year)
+    theGifts = get_presenters(year)
+
+    print("\n")
+
+    hoStr = "Host(s): "
+    for host in theHosts:
+        hoStr += host + ", "
+    print(hoStr[:-2])
+
+    actualstr = ""
+
+    for aw in theAwards:
+        actualstr += aw + ", "
+    print("Awards found: " + actualstr[:-2])
+
+    for award in official_awards:
+        print("Award: " + award)
+        if award in theGifts:
+            awStr = ""
+            for gift in theGifts[award]:
+                awStr += gift + ", "
+            print("Presenters: " + awStr[:-2])
+        else:
+            print("Presenters: Unknown")
+        if award in theNominees:
+            nomStr = ""
+            for nom in theNominees[award]:
+                nomStr += nom + ", "
+            print("Nominees: " + nomStr[:-2])
+        else:
+            print("Nominees: Unknown")
+        if award in winner:
+            print("Winner: " + winner[award])
+        else:
+            print("Winner: Unknown")
 
 
     return
